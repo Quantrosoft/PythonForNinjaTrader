@@ -14,7 +14,7 @@ NinjaTrader 8 (C#)
                     +-- Your Python Strategy (.py)
 ```
 
-The C# wrapper handles NinjaTrader lifecycle events, pushes bar data into Python on each tick, and executes orders returned by your Python strategy. `generate_strategy.py` reads your Python file and auto-generates both the C# wrapper and a NinjaTrader template XML.
+The C# wrapper handles NinjaTrader lifecycle events, pushes bar data into Python on each bar update, and executes orders returned by your Python strategy. `generate_strategy.py` reads your Python file and auto-generates both the C# wrapper and a NinjaTrader template XML.
 
 ## Prerequisites
 
@@ -25,21 +25,22 @@ The C# wrapper handles NinjaTrader lifecycle events, pushes bar data into Python
 ## Quick Start
 
 ```bash
-# 1. Clone the repo
-git clone https://github.com/youruser/PythonForNinjaTrader.git
-cd PythonForNinjaTrader
+# 1. Clone directly into NinjaTrader's Strategies folder
+cd "%USERPROFILE%\Documents\NinjaTrader 8\bin\Custom\Strategies"
+git clone https://github.com/Quantrosoft/PythonForNinjaTrader.git Python
 
-# 2. Install
-python install.py
+# 2. Generate C# wrappers for all example strategies
+cd Python
+python generate_strategy.py --all
 
-# 3. Open NinjaTrader, find your strategy in the Strategies tab
+# 3. Start NinjaTrader — strategies appear automatically
 ```
 
-The installer copies all files to `~/Documents/NinjaTrader 8/bin/Custom/Strategies/Python/`, generates C# wrappers, and NinjaTrader auto-compiles them on next startup.
+NinjaTrader auto-compiles all `.cs` files in the `bin/Custom` folder tree on startup. The generated C# wrappers and templates are placed in the correct locations automatically.
 
 ## Writing Your First Strategy
 
-Create a new `.py` file in `Python/strategies/`:
+Create a new `.py` file in `strategies/`:
 
 ```python
 from nt_api import NtStrategy
@@ -65,18 +66,13 @@ class MyStrategy(NtStrategy):
             self.exit_long("MyExit")
 ```
 
-Then regenerate the C# wrapper:
+Then generate the C# wrapper:
 
 ```bash
-cd Python
 python generate_strategy.py strategies/my_strategy.py
 ```
 
-Or use watch mode to auto-regenerate on file changes:
-
-```bash
-python generate_strategy.py --watch
-```
+Restart NinjaTrader or recompile in the NinjaScript Editor (F5). Your strategy appears as **PyMyStrategy** in the Strategies list.
 
 ## PARAMETERS Dict
 
@@ -89,7 +85,7 @@ Each strategy defines a `PARAMETERS` class variable. Each entry maps a snake_cas
 | `display` | Display name in NinjaTrader UI       | `'Fast Period'`    |
 | `group`   | Property group in NinjaTrader UI     | `'MyStrategy'`     |
 
-Parameters are automatically exposed as NinjaTrader strategy properties in the generated C# wrapper and pushed to the Python instance at runtime.
+Parameters are automatically exposed as NinjaTrader strategy properties and pushed to the Python instance at runtime. Access them as `self.fast_period` (snake_case name from dict).
 
 ## Available API
 
@@ -121,7 +117,7 @@ Parameters are automatically exposed as NinjaTrader strategy properties in the g
 
 | Method | When Called |
 |--------|------------|
-| `on_bar_update()` | Each bar update (main logic) |
+| `on_bar_update()` | Each bar close (main logic) |
 | `on_configure()` | State.Configure |
 | `on_data_loaded()` | State.DataLoaded |
 | `on_stop()` | Strategy terminated |
@@ -130,34 +126,33 @@ Parameters are automatically exposed as NinjaTrader strategy properties in the g
 
 1. You write a Python class inheriting from `NtStrategy` with a `PARAMETERS` dict
 2. `generate_strategy.py` parses your `.py` file via AST and generates:
-   - A C# strategy class (`{ClassName}Strategy.cs`) in NinjaTrader's Strategies folder
+   - A C# strategy class (`Py{ClassName}.cs`) in the Python folder
    - A NinjaTrader template XML in the templates folder
 3. NinjaTrader compiles the C# wrapper on startup
-4. At runtime, the C# wrapper initializes pythonnet, loads your Python script, pushes bar data as a dict on each tick, and reads back orders/prints
+4. At runtime, the C# wrapper initializes pythonnet, loads your Python script, pushes bar data as a dict on each bar, and reads back orders/prints
 
 ## Limitations
 
-- **No direct NT indicator access**: Python strategies cannot call NinjaTrader's built-in indicators (SMA, EMA, etc.) directly from the bar-data-push mode. Indicator access via `self._api` requires the full pythonnet bridge (C# instance injection).
-- **Crystal Ball**: The ChrystalBall example strategy uses future bar data (`GetValueAt`) and only works in Historical/Backtest mode, not live.
-- **Single timeframe**: The bar-data-push mode supports the primary data series only. Multi-timeframe requires the full `_api` bridge.
-- **No historical lookback**: `self._bar_data` provides current bar only (`[0]`). Historical bar indexing (`close[5]`) requires the full `_api` bridge.
+- **No direct NT indicator access**: Python strategies cannot call NinjaTrader's built-in indicators (SMA, EMA, etc.) directly. Implement indicators in Python or use `nt_wrapper.py` helpers.
+- **Crystal Ball**: The ChrystalBall example uses future bar data (`GetValueAt`) and only works in Historical/Backtest mode, not live.
+- **Single timeframe**: Supports the primary data series only.
+- **Current bar only**: `self._bar_data` provides the current bar. For historical lookback, maintain your own buffer in Python.
 
 ## Project Structure
 
 ```
-PythonForNinjaTrader/
-  install.py              # One-click installer
-  Python/
+NinjaTrader 8/bin/Custom/Strategies/Python/   (this repo)
+    PythonEngine.cs       # C# pythonnet bridge
+    Python.Runtime.dll    # pythonnet 3 runtime
     nt_api.py             # NtStrategy base class
     nt_wrapper.py         # Utility functions (cross_above, highest, etc.)
-    PythonEngine.cs       # C# pythonnet bridge (reflection-based)
-    PyChrystalBall.cs     # C# wrapper for ChrystalBall (with future data injection)
-    Python.Runtime.dll    # pythonnet runtime
     generate_strategy.py  # Auto-generates C# wrappers from Python strategies
     strategies/
-      chrystal_ball.py    # Example: Crystal Ball strategy
+      chrystal_ball.py    # Example: Crystal Ball (backtest-only future-reading)
+      sma_crossover.py    # Example: SMA crossover
+      empty_strategy.py   # Minimal template to copy
 ```
 
 ## License
 
-MIT
+MIT - Copyright (c) 2026 Quantrosoft

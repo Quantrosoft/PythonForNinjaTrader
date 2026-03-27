@@ -118,20 +118,20 @@ def build():
 
     # === 3. QUICK START ===
     story.append(Paragraph("3. Quick Start", styles['Heading1']))
-    story.append(Paragraph("<b>Step 1:</b> Clone the repository", styles['Normal']))
+    story.append(Paragraph("<b>Step 1:</b> Clone into NinjaTrader's Strategies folder", styles['Normal']))
     story.append(Preformatted(
-        "git clone https://github.com/Quantrosoft/PythonForNinjaTrader.git\n"
-        "cd PythonForNinjaTrader", styles['CodeBlock']))
-    story.append(Paragraph("<b>Step 2:</b> Run the installer", styles['Normal']))
-    story.append(Preformatted("python install.py", styles['CodeBlock']))
+        'cd "%USERPROFILE%\\Documents\\NinjaTrader 8\\bin\\Custom\\Strategies"\n'
+        "git clone https://github.com/Quantrosoft/PythonForNinjaTrader.git Python",
+        styles['CodeBlock']))
+    story.append(Paragraph("<b>Step 2:</b> Generate C# wrappers", styles['Normal']))
+    story.append(Preformatted("cd Python\npython generate_strategy.py --all", styles['CodeBlock']))
     story.append(Paragraph(
-        "The installer copies all files to your NinjaTrader Custom folder, detects your "
-        "Python installation, and generates C# wrappers for all example strategies.",
+        "This generates a C# wrapper and NinjaTrader template for each example strategy.",
         styles['Normal']))
     story.append(Paragraph("<b>Step 3:</b> Start NinjaTrader", styles['Normal']))
     story.append(Paragraph(
-        "NinjaTrader auto-compiles the generated C# wrappers. Open a chart, right-click "
-        "&#8594; Strategies, and you will see PyChrystalBall, PySmaCrossover, etc.",
+        "NinjaTrader auto-compiles all .cs files in the bin/Custom folder tree. Open a chart, "
+        "right-click &#8594; Strategies, and you will see PyChrystalBall, PySmaCrossover, etc.",
         styles['Normal']))
     story.append(Spacer(1, 12))
 
